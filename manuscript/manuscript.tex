@@ -15,6 +15,7 @@
 \usepackage{lipsum} % Required to insert dummy text
 \usepackage[version=4]{mhchem}
 \usepackage{siunitx}
+\usepackage{url}
 \DeclareSIUnit\Molar{M}
 \usepackage[italic]{mathastext}
 \graphicspath{{figures/}}
@@ -29,14 +30,14 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% ARTICLE SETUP
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\title{This is the title [Article v\versionnumber]}
+\title{GC4 and BioSimSpace (working title)}
 
-\author[1*]{Firstname Middlename Surname}
-\author[1,2\authfn{1}\authfn{3}]{Firstname Middlename Familyname}
-\author[2\authfn{1}\authfn{4}]{Firstname Initials Surname}
-\author[2*]{Firstname Surname}
-\affil[1]{Institution 1}
-\affil[2]{Institution 2}
+\author[1*]{Antonia S J S Mey}
+\author[2*\authfn{1}\authfn{3}]{Lester O Hedges}
+\author[2\authfn{1}\authfn{4}]{Christopher Woods}
+\author[1]{Julien Michel }
+\affil[1]{Edinburgh}
+\affil[2]{Bristol}
 
 \corr{email1@example.com}{FMS}  % Correspondence emails.  FMS and FS are the appropriate authors initials.
 \corr{email2@example.com}{FS}
@@ -72,13 +73,7 @@
 \maketitle
 
 \begin{abstract}
-This particular document provides a skeleton illustrating key sections for a Computational Comparisons document.
-Please see the sample \texttt{sample-document.tex} in \url{github.com/livecomsjournal/article_templates/templates} for additional information on and examples of using the LiveCoMS LaTeX class.
-Here we also assume familiarity with LaTeX and knowledge of how to include figures, tables, etc.; if you want examples, see the sample just referenced.
-
-In your work, in this particular slot, please provide an abstract of no more than 250 words.
-Your abstract should explain the main contributions of your article, and should not contain any material that is not included in the main text.
-Please note that your abstract, plus the authorship material following it, must not extend beyond the title page or modifications to the LaTeX class will likely be needed.
+This article discusses the BioSimSpace results of the D3R2018 grand challenge
 \end{abstract}
 
 \end{frontmatter}
@@ -88,21 +83,103 @@ Please note that your abstract, plus the authorship material following it, must 
 
 \section{Introduction}
 
-Here you would explain what problem you are tackling and briefly motivate your work; why is a comparison needed here?
-What do the tools you are comparing do?
-
-In this particular template, we have removed most of the usage examples which occur in \texttt{sample-document.tex} to provide a minimal template you can modify but we retain an example on algorithms and pseudocode.
+This document serves as a quick summary reference document of some of the analysis that has been done on the GC4 dataset for the free energy predictions of Cathepsin S. 
 
 \section{Methodology}
 
-Here (and in other sections if needed) you would describe how you compared the software in question, with subsections as needed.
-Perhaps you may also need to comment here on why you did not include certain pieces of software or how these might be included in the future.
+Currently this is a copy and paste of the methods submitted to the challenge.
+
+Software: BioSimSpace (feature-freenrgy) \url{https://github.com/michellab/BioSimSpace/tree/feature-freenrg}
+Software: Sire (feature-mapping) \url{https://github.com/michellab/Sire/tree/feature-mapping}
+Software: AmberTools (18)
+Software: GROMACS (2018)
+Software: pymbar (3.0.3)
+Software: freenrgworkflows (1.1)
+Software: FESetup 1.2.1, SUI version: 0.8.3
+Software: RDkit 18.09.01
+Protein Forcefield: AMBER FF14SB
+Ligand Forcefield: AMBER GAFF2
+Water Model: TIP3P
+
+Parameter: timestep 2.00 femtosecond
+Parameter: temperature = 300.00 kelvin
+Parameter: pressure = 1 atm
+Parameter: reaction field dielectric = 78.3
+Parameter: cutoff type = cutoffperiodic
+Parameter: cutoff distance = 10 angstrom
+Parameter: minimise = True
+Parameter: lambda values between 9 and 17 windows. 
+
+Full installation instructions:
+\url{https://github.com/michellab/D3R2018/blob/master/CatS/BSS/README.md}
+
+The ligands were prepared for relative free energy calculations from the output
+of the docking protocols. Each ligand was parameterised using GAFF within
+BioSimSpace using the following script:
+\url{https://github.com/michellab/D3R2018/blob/master/CatS/BSS/parameterise.py}
+This was run for each of the 39 ligands as well as two additional intermediate
+states that were added in order to simplifly perturbations between certain
+ligand pairs.
+
+Full production simulations for each forward and reverse ligand pair mapping
+within the network were run almost entirely within BioSimSpace using the
+following script:
+\url{https://github.com/michellab/D3R2018/blob/master/CatS/BSS/binding_freenrgy.py}
+This performed the following sequence of tasks:
+\begin{enumerate}
+\item Read in the protein and crystal waters from a PDB file. Extract the
+   water molecules from the system.
+\item Parameterise the protein using AMBER FF14SB.
+\item Read the two pre-parameterised ligands. (GAFF2)
+\item Look for a mapping file specifying the matching atoms in the maximum
+   common substructure of the ligand pair. If the file is not present,
+   then the mapping is generated by BioSimSpace. Preliminary simulations
+   found low atom counts for certain BioSimSpace generated mappings so,
+   where necessary, mapping files were generated using additional tools
+   (FESetup and RDKit). However, it should be noted that all tools struggled
+   with certain mappings, with each performing better or worse for
+   different pairs.
+\item The first ligand is aligned to the second based on the mapping.
+\item The two ligands are merged based on the mapping. This creates a
+   perturbable molecule describing the two lambda end states (0 and 1)
+   as well as the properties, e.g. bonds, angles, dihedrals, etc., that
+   are perturbed.
+\item A molecular system is created from the merged molecule, the protein,
+   and the crystal waters.
+\item This system is then solvated in a 60 Angstrom cubed box of TIP3P
+   water. Existing crystal waters are automatically converted to the
+   correct water topology and the system is neutralised.
+\item A free energy protocol is created using a run time of 4 nanoseconds
+   per window and 17 linearly spaced windows per free energy leg.
+\item Using the solvated protein-ligand complex and protocol, BioSimSpace
+    automatically configures all of the input required for the full
+    binding free energy calculation.
+\item The simulation is run. For simplicity, each lambda window is run in
+    sequence. BioSimSpace can automatically detect crashes and re-run
+    specific windows as necessary.
+   \end{enumerate}
+
+The full set of simulations were run on a 10 node GPU cluster with 2
+GPUs per node. This ran on the Oracle Cloud infrastructure and was set up
+using the following guide:
+\url{https://cluster-in-the-cloud.readthedocs.io/en/latest/running.html#slurm-jobs}
+A single job submission involved running the full forward
+and reverse mappings on the two GPUs within a node. A Slurm template and
+the bash script used for submission can be found at the following links:
+\url{https://github.com/michellab/D3R2018/blob/master/CatS/BSS/template.slm}
+\url{https://github.com/michellab/D3R2018/blob/master/CatS/BSS/submit.sh}
+
+The output the simulations was analysed using the 'analyse\_freenrg'
+package within Sire, which uses the pymbar package to perform multi
+state Bennet's acceptance ratio analysis. The following bash script
+was used to perform incremental analysis as jobs finished:
+\url{https://github.com/michellab/D3R2018/blob/master/CatS/BSS/analyse_data.sh}
 
 \subsection{Physical systems and properties}
 
-What did you calculate, on what systems? Why did you make that choice?
+Blinded challenge of predicting binding free energies for a set of 39 compounds serving as inhibitors for Cathepsin S. 
 
-\subsection{Methodology for comparison}
+\subsection{Binding free energy prediction with Flare}
 How did you compute what you're comparing? 
 What software versions did you use?
 How would the software be accessed?
@@ -121,7 +198,7 @@ You may wish to devote particular attention to error analysis.
 
 \section{Results}
 
-You would give results.
+The most straightforward comparison is 
 
 
 \section{Discussion and conclusions}
