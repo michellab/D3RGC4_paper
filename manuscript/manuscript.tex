@@ -86,7 +86,7 @@ This article discusses the BioSimSpace results of the D3R2018 grand challenge
 This document serves as a quick summary reference document of some of the analysis that has been done on the GC4 dataset for the free energy predictions of Cathepsin S. 
 
 \section{Methodology}
-
+\subsection{BioSimSpace}
 Currently this is a copy and paste of the methods submitted to the challenge.
 
 Software: BioSimSpace (feature-freenrgy) \url{https://github.com/michellab/BioSimSpace/tree/feature-freenrg}
@@ -175,35 +175,35 @@ state Bennet's acceptance ratio analysis. The following bash script
 was used to perform incremental analysis as jobs finished:
 \url{https://github.com/michellab/D3R2018/blob/master/CatS/BSS/analyse_data.sh}
 
-\subsection{Physical systems and properties}
-
-Blinded challenge of predicting binding free energies for a set of 39 compounds serving as inhibitors for Cathepsin S. 
-
-\subsection{Binding free energy prediction with Flare}
-How did you compute what you're comparing? 
-What software versions did you use?
-How would the software be accessed?
-
-
-\subsubsection{Method selection}
-How did you select which protocols to use? How are you certain these are representative? Would a naive user get similar performance? 
-
-\subsubsection{Supporting files}
-Are there run scripts or files others would need to reproduce your work? Are these provided in your GitHub repo, or how would they be accessed? 
-How exactly would someone reproduce/extend this work?
-
-\subsubsection{Error analysis}
-You may wish to devote particular attention to error analysis.
-
+\subsection{Flare}
+Software used: Flare 2.0 revision 34140, fkcombu, Rdkit 2018.09.01
+Computational parameters for Flare: calculation method normal, Quality Normal, Max poses 10, Pool Size 1.00, Population Size 1.00, and pH 4.5
+Method: Ligands were read from file with Flare, minimised protonated to a pH of 4.5 and minimised with Flare. They were then docked to, 2HHN with only retaining one docking pose. The resulting ligand positions were saved and used to find the maximum common substructure between ligand and available crystal structures of GC3. Matched crystal structures were then used to aligned the docked compounds to the crystal compounds using fkcombu. Aligned structures with their respective crystals were then read back into Flare for a second round of docking calculations to pdb structure 5QC4. Top scoring poses were checked to see if binding mode was consistent with known crystal structures. Then the LF dG score was recorded and pose was saved.
+\subsection{Experimental data}
+In order to obtain relative free energies of binding from IC50 the following equation was used:
+\begin{equation}
+\Delta\Delta G(L_1, L_2) = kT \log \frac{IC50_{L_1}}{IC50_{L_2}}
+\end{equation}
 
 \section{Results}
-
-The most straightforward comparison is 
-
-
+The initial analysis shows poor correlation between binding free energies computed from IC50s and evaluated using either SOMD within BioSimSpace or Flare scoring functions to estimate free energies. Figure~\ref{fig:fig1} summarises these findings, showing a scatter plot of relative binding free energies from SOMD BioSimSpace calculations in (a), scoring evaluated using Flare from docked poses in (b) and scoring evaluated with Flare from poses aligned with known crystal structures in (c). Pearson correlation, mean unsigned error, and Kendall tau are summarised in table~\ref{tab:tab1}.  
+\begin{figure}
+\includegraphics[width=\columnwidth]{figures/Fig1/Fig1.pdf}
+\caption{\label{fig:fig1} (a) Binding free energy prediction from SOMD free energy estimate with respect to experimental data computed from IC 50s (b) Binding free energy prediction from Docked compounds with Flare compared to experiments (c) Binding free energy predictions from structures aligned to crystal pose using Flare for scoring }
+\end{figure}
+\begin{table}[]
+\begin{tabular}{|l|lll}
+\hline
+              & \multicolumn{1}{l|}{R} & \multicolumn{1}{l|}{$\tau$} & \multicolumn{1}{l|}{MUE in kcal/mol} \\ \hline
+SOMD          & 0.05 $\pm$0.14         & 0.003 $\pm$0.16             & 1.6 $\pm$ 0.2                        \\ \cline{1-1}
+Flare Docking & 0.2 $\pm$ 0.1          & 0.1 $\pm$0.1                & 1.0 $\pm$ 0.1                        \\ \cline{1-1}
+Flare Crystal & -0.05 $\pm$0.04        & -0.003 $\pm$0.070           & 1.5 $\pm$0.1                         \\ \hline
+\end{tabular}
+\caption{\label{tab:tab1}}
+\end{table}
 \section{Discussion and conclusions}
 
-You may perhaps wish to revisit the issue of what performance a naive user might expect, here.
+All the discussions. 
 
 
 
